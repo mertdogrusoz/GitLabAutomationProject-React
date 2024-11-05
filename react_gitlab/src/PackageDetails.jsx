@@ -31,7 +31,7 @@ const PackageDetails = () => {
                 setProjects(fetchedProjects);
                 setPackages(fetchedPackages);
             } catch (error) {
-                console.error("Veriler alınırken hata oluştu:", error);
+                console.error("Veriler alinirken hata oluştu:", error);
             } finally {
                 setLoading(false);
             }
@@ -55,6 +55,7 @@ const PackageDetails = () => {
             setActions(actions.filter(action => action.pkg !== pkg));
         }
     };
+   
 
     const handleActionChange = (index, field, value) => {
         const updatedActions = [...actions];
@@ -232,6 +233,7 @@ const PackageDetails = () => {
                                         type="checkbox"
                                         className="form-check-input"
                                         onChange={() => handleCheckboxChange(pkg)}
+                                        
                                     />
                                 </td>
                             </tr>

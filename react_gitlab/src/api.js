@@ -26,3 +26,4 @@ export const updatePackageVersion = async (projectName, packageId, version) => {
     });
     return response.data;
 };
+
