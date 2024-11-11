@@ -5,14 +5,14 @@ import { getProjectsByGroupId } from './api';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const ProjectDetails = () => {
-    const { groupId } = useParams(); // URL'den groupId parametresini alıyoruz
+    const { groupId } = useParams();
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchProjects = async () => {
             try {
-                const data = await getProjectsByGroupId(groupId); // API çağrısı
+                const data = await getProjectsByGroupId(groupId); 
                 setProjects(data);
             } catch (error) {
                 console.error("Projeler alınırken hata oluştu:", error);
@@ -48,6 +48,7 @@ const ProjectDetails = () => {
                             <td>{project.description || 'Yok'}</td>
                             <td><a href={project.webUrl} target="_blank" rel="noopener noreferrer">{project.webUrl}</a></td>
                         </tr>
+                        
                     ))}
                 </tbody>
             </table>

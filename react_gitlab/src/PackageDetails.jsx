@@ -1,11 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { act, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { getProjectsByGroupId, getNuGetPackagesByGroupId, updatePackageVersion } from './api';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import axios from 'axios';
+import { Getbranch } from './branchApi';
+
 
 const PackageDetails = () => {
     const { groupId } = useParams();
+
     const [projects, setProjects] = useState([]);
     const [packages, setPackages] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -13,6 +16,8 @@ const PackageDetails = () => {
     const [selectedPackages, setSelectedPackages] = useState([]);
     const [actions, setActions] = useState([]);
     const [newVersion, setNewVersion] = useState("");
+    const [branch, setBranch] = useState("");
+
 
     useEffect(() => {
         const fetchProjectsAndPackages = async () => {
@@ -27,11 +32,12 @@ const PackageDetails = () => {
             try {
                 const fetchedProjects = await getProjectsByGroupId(groupId);
                 const fetchedPackages = await getNuGetPackagesByGroupId(groupId);
+                
 
                 setProjects(fetchedProjects);
                 setPackages(fetchedPackages);
             } catch (error) {
-                console.error("Veriler alinirken hata oluştu:", error);
+                console.error("Veriler alınırken hata oluştu:", error);
             } finally {
                 setLoading(false);
             }
@@ -40,58 +46,95 @@ const PackageDetails = () => {
         fetchProjectsAndPackages();
     }, [groupId]);
 
+
+
+    useEffect(()=>{
+        const fetchProject = async () =>{
+            if(!groupId)
+            {
+                console.error("Geçersiz grupID :" , groupId);
+                setLoading(false);
+                return;
+            }
+            setLoading(true);
+
+            try{
+                const fetchedProjects = await getProjectsByGroupId(groupId);
+                const fetchedPackages = await getNuGetPackagesByGroupId(groupId);
+            }
+            catch(err)
+            {
+                console.error("Veriler alınırken hata oluştu: " ,err);
+            }
+            finally{
+                setLoading(false);
+            }
+        }
+
+    },[groupId]);
+
     const handleSearch = (e) => {
         setSearchTerm(e.target.value);
+      
+        
     };
 
     const handleCheckboxChange = (pkg) => {
         setSelectedPackages((prev) =>
             prev.includes(pkg) ? prev.filter((p) => p !== pkg) : [...prev, pkg]
         );
-
+    
         if (!selectedPackages.includes(pkg)) {
-            setActions([...actions, { pkg, action: 'create', filePath: '', content: '' }]);
+            setActions([...actions, { pkg, action: 'create', filePath: '', content: '', newVersion: pkg.version }]);
         } else {
             setActions(actions.filter(action => action.pkg !== pkg));
         }
     };
-   
-
+    
     const handleActionChange = (index, field, value) => {
         const updatedActions = [...actions];
         updatedActions[index][field] = value;
-
+      
         if (field === 'action') {
             if (value === 'create') {
                 updatedActions[index].previous_path = '';
                 updatedActions[index].last_commit_id = '';
+                updatedActions[index].filePath = `${updatedActions[index].pkg.projectName}/${updatedActions[index].pkg.projectName}.csproj`; // filePath dinamik olarak ayarlanıyor
             } else if (value === 'update') {
-                const previousPath = prompt("Lütfen previous_path değerini girin:");
-                const lastCommitId = prompt("Lütfen last_commit_id değerini girin:");
-                updatedActions[index].previous_path = previousPath;
-                updatedActions[index].last_commit_id = lastCommitId;
+                updatedActions[index].previous_path = `${updatedActions[index].pkg.projectName}/${updatedActions[index].pkg.projectName}.csproj`;
+                updatedActions[index].last_commit_id = "1";
+                updatedActions[index].filePath = `${updatedActions[index].pkg.projectName}/${updatedActions[index].pkg.projectName}.csproj`; // filePath dinamik olarak ayarlanıyor
             }
         }
-
+        
         setActions(updatedActions);
     };
+    
+    
+    
 
     const handleUpdateSelected = async () => {
-        const branchName = prompt("Branch ismi girin:");
-        if (!branchName) return alert("Branch name cannot be empty!");
-
-        const commitMessage = prompt("Commit mesajinizi girin:");
-        if (!commitMessage) return alert("Commit message cannot be empty!");
-
         for (const action of actions) {
+            const packageId = action.pkg.packageId;
+            const packageVersion = action.newVersion;  // `newVersion`'ı burada alın
+    
+            const branchName = `versionUpdate`;
+        
+    
+            if (!branchName) return alert("Branch name cannot be empty!");
+                
+    
+            const commitMessage = `${packageId} updated `;
+    
             const project = projects.find(p => p.name === action.pkg.projectName);
             if (!project) return alert(`Project not found: ${action.pkg.projectName}`);
-
+    
             const projectId = project.id;
-
+    
             const xamlContent = await fetchXAMLContent(groupId, action.pkg.projectName);
-            if (!xamlContent) return; // XAML içeriği boşsa dur
-
+            if (!xamlContent) return; // Eğer XAML içeriği yoksa dur
+         
+    
             const apiActions = [{
                 action: "update",
                 file_path: action.filePath,
@@ -102,13 +145,25 @@ const PackageDetails = () => {
                     last_commit_id: action.last_commit_id,
                 })
             }];
-
+    
             await createBranch(projectId, branchName);
-            await createCommit(projectId, branchName, commitMessage, apiActions);
-            await updatePackageVersion(action.pkg.projectName, action.pkg.packageId, newVersion);
+    
+            const commitResponse = await createCommit(projectId, branchName, commitMessage, apiActions);
+            if (commitResponse && commitResponse.success) {
+                await updatePackageVersion(action.pkg.projectName, action.pkg.packageId, packageVersion);
+            } else {
+                alert("Commit creation failed!");
+                return;
+            }
         }
+    
         alert("Selected packages have been successfully updated.");
     };
+    
+    
+    
+    
+    
 
     const UpdateVersion = async () => {
         const newVersion = prompt("Yeni Versiyonu giriniz: ");
@@ -132,7 +187,7 @@ const PackageDetails = () => {
             return null;
         }
     };
-
+  
     const createBranch = async (projectId, branchName) => {
         try {
             const response = await fetch(`https://localhost:7242/api/Branch/projects/${projectId}/createbranch`, {
@@ -169,6 +224,7 @@ const PackageDetails = () => {
             const errorText = await response.text();
             console.error(`Commit creation error: ${response.status} - ${errorText}`);
             throw new Error(`Commit creation error: ${response.status} - ${errorText}`);
+            
         }
 
         return await response.json();
@@ -185,7 +241,7 @@ const PackageDetails = () => {
                         <th>ID</th>
                         <th>Project Name</th>
                         <th>Description</th>
-                        <th>Web URL</th>
+                        <th>Merge Request</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -194,7 +250,11 @@ const PackageDetails = () => {
                             <td>{project.id}</td>
                             <td>{project.name}</td>
                             <td>{project.description || 'Yok'}</td>
-                            <td><a href={project.webUrl} target="_blank" rel="noopener noreferrer">{project.webUrl}</a></td>
+                            <td>
+                            <a href={`/project/${project.id || 'defaultProjectId'}/merges`} className="btn btn-danger">Merge Request</a>
+
+                            </td>
+                          
                         </tr>
                     ))}
                 </tbody>
@@ -218,6 +278,7 @@ const PackageDetails = () => {
                         <th>Package Name</th>
                         <th>Package Version</th>
                         <th>Seç</th>
+                        <th>Merge Request</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -225,7 +286,7 @@ const PackageDetails = () => {
                         .filter(pkg => pkg.packageId.toLowerCase().includes(searchTerm.toLowerCase()))
                         .map(pkg => (
                             <tr key={`${pkg.projectName}-${pkg.packageId}`}>
-                                <td>{pkg.projectName}</td>
+                                <td>{pkg.projectName}</td>  
                                 <td>{pkg.packageId}</td>
                                 <td>{pkg.version}</td>
                                 <td>
@@ -233,8 +294,12 @@ const PackageDetails = () => {
                                         type="checkbox"
                                         className="form-check-input"
                                         onChange={() => handleCheckboxChange(pkg)}
-                                        
+                                      
                                     />
+                                </td>
+                                <td>
+
+
                                 </td>
                             </tr>
                         ))}
@@ -253,17 +318,22 @@ const PackageDetails = () => {
                         type="text"
                         placeholder="Dosya Yolu"
                         value={action.filePath}
-                        onChange={(e) => handleActionChange(index, 'filePath', e.target.value)}
+                        style={{display : 'none'}}
+                        readOnly
+                       
                     />
                 </div>
             ))}
-
             <button className="btn btn-primary" onClick={handleUpdateSelected}>
                 Branch-commit oluşturma
             </button>
             <button className="btn btn-warning" onClick={UpdateVersion}>
                 Versiyonu Güncelle
             </button>
+
+          
+        
+         
         </div>
     );
 };

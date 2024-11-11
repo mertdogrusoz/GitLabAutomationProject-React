@@ -1,13 +1,14 @@
 import React from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import GroupList from './GroupList';
-import ProjectDetails from './ProjectDetails'; // Örneğin, proje detayları için bir bileşen
+import ProjectDetails from './ProjectDetails'; 
 import PackageDetails  from './PackageDetails'
-import MargeDetails from './MargeDetails'
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import CommitDetails from './CommitDetails';
 import BranchDetails from './BranchDetails';
+import MergeDetails from './MergeDetails';
+
+
+
+
 
 
 
@@ -18,9 +19,15 @@ function App() {
                 <Route path="/" element={<GroupList />} />
                 <Route path="/project/:groupId" element={<ProjectDetails />} />
                 <Route path='/group/:groupId/packages' element={<PackageDetails />}/>
-                <Route path='/project/:id/merges' element= {<MargeDetails/>}/>
-                <Route path='/project/:projectId/commites' element = {<CommitDetails/>} />
-                <Route path='/project/:projectId/branches' element = {<BranchDetails/>}/>
+                <Route path= '/project/:projectId/branches' element= {<BranchDetails />} />
+                <Route path = '/project/:projectId/merges' element = {<MergeDetails />} />
+             
+                
+              
+
+
+               
+                
       
                
             </Routes>
