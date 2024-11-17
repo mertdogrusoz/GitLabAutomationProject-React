@@ -1,7 +1,7 @@
 import { useEffect,useState } from "react";
 import { useParams } from "react-router-dom";
 import { GetMerge } from "./mergeApi";
-import { Getbranch } from "./branchApi";
+
 
 
 const MergeDetails = () =>{
@@ -67,8 +67,6 @@ const MergeDetails = () =>{
             </table>
 
         </div>
-
-
     );
 
 }
