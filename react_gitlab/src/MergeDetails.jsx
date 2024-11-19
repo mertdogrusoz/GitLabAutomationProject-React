@@ -33,6 +33,26 @@ const MergeDetails = () =>{
         }
 
     },[projectId])
+    const createMergeRequest = async (projectId) => {
+        try {
+            const response = await fetch(`https://localhost:7242/api/Merge/${projectId}/merge-request`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sourceBranch: "versionUpdate", 
+                    targetBranch: 'master',       
+                    title: 'versiyon güncelleme'  
+                })
+            });
+            console.log("Merge Request oluşturuldu");
+            return response.ok;
+
+            
+        } catch (err) {
+            console.error(`Merge request oluşturulurken hata oluştu: ${err.message}`);
+            return false;
+        }
+    };
 
     if(loading) return <p>Yükleniyor...</p>
 
@@ -47,6 +67,7 @@ const MergeDetails = () =>{
                         <th>Project Title</th>
                         <th>Description</th>
                         <th>Web URL</th>
+                        <th>Merge Request oluştur</th>
 
                     </tr>
 
@@ -56,6 +77,7 @@ const MergeDetails = () =>{
                         <tr key={item.id}>
                        
                         <th>{item.title}</th>
+                        <th><a href="" className="btn btn-primary" onClick={()=> createMergeRequest(projectId)}>Merge Request oluştur</a></th>
                      
 
                         </tr>

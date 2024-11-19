@@ -49,6 +49,7 @@ const ProjectDetails = () => {
                             <td><a href={project.webUrl} target="_blank" rel="noopener noreferrer">{project.webUrl}</a></td>
                         </tr>
                         
+                        
                     ))}
                 </tbody>
             </table>

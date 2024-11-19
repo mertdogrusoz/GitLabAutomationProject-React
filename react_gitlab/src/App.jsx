@@ -22,10 +22,6 @@ function App() {
 
                 <Route path = '/project/:projectId/merges' element = {<MergeDetails />} />
              
-                
-              
-
-
                
                 
       
